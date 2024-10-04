@@ -7,17 +7,17 @@ param(# Parameter help description
 [Parameter(Mandatory=$false)]
 [Int32] $kubun=0,
 [Parameter(Mandatory=$false)]
-[Int32] $start=0   # start from 1
+[Int32] $start=0
 )
 
 $objlist = [List[PSCustomObject]]::new()
-#Hash {Directive,how many times the directive occurres}like {æ›¸èªŒ,0][æç¤ºæ–‡çŒ®,2][å›³é¢,0]]
+#Hash {Directive,how many times the directive occurres}like {‘,0][’ñ¦•¶Œ£,2][}–Ê,0]]
 $DirectiveHash =@{}
 #count target file , start from 1
 $TargetFileNumHash=@{}
 #Start number for TargetFile
-# if TargetFileNumBaseHash{"æç¤ºæ–‡çŒ®"} is 4
-#then the number goes 04_æç¤ºæ–‡çŒ®,05_æç¤ºæ–‡çŒ®,,,,,
+# if TargetFileNumBaseHash{"’ñ¦•¶Œ£"} is 4
+#then the number goes 04_’ñ¦•¶Œ£,05_’ñ¦•¶Œ£,,,,,
 $TargetFileNumBaseHash=@{}
 $DirectiveOrder=[List[string]]::new()
 
@@ -65,16 +65,16 @@ foreach ($obj in $objlist)
     Write-Host $obj.Directive
 }
 Write-Host $DirectiveHash
-Write-Host "åŒºåˆ† $kubun"
-Write-Host "é–‹å§‹ $start"
+Write-Host "‹æ•ª $kubun"
+Write-Host "ŠJn $start"
 
 $count = $start
 $filename=""
 foreach ($obj in $objlist)
 {
-     if ($obj.FName  -match "_æç¤ºæ–‡çŒ® \d+_(.*)$")
+     if ($obj.FName  -match "_’ñ¦•¶Œ£ \d+_(.*)$")
     {
-        #pick filename from dd_æç¤ºæ–‡çŒ®n_filename 
+        #pick filename from dd_’ñ¦•¶Œ£n_filename 
         #        $filename =   ($obj.FName -split "_")[-1]
         $filename = $Matches.1
      }
@@ -93,18 +93,18 @@ foreach ($obj in $objlist)
     {
         $count++
 #        $countString = $count.ToString("00")
-            if (($kubun -eq 8 ) -and  ($obj.Directive  -match "æç¤ºæ–‡çŒ®"))
+            if (($kubun -eq 8 ) -and  ($obj.Directive  -match "’ñ¦•¶Œ£"))
         {
-            #kubun 8 only:  dd_æç¤ºæ–‡çŒ®_filename
+            #kubun 8 only:  dd_’ñ¦•¶Œ£_filename
             $obj.TargetFile = $count.ToString("00")+ "_" + $obj.Directive+"_"+$filename    
         }
         else {
-            #otherwise dd_æç¤ºæ–‡çŒ®n
+            #otherwise dd_’ñ¦•¶Œ£n
             $obj.TargetFile = $count.ToString("00")+ "_" + $obj.Directive+".pdf"
         }
     }
     else {
-        #count up Directive eg, æç¤ºæ–‡çŒ®1, æç¤ºæ–‡çŒ®2
+        #count up Directive eg, ’ñ¦•¶Œ£1, ’ñ¦•¶Œ£2
         if ($TargetFileNumHash.ContainsKey($obj.Directive))
         {
             #count up target file number for the directive
@@ -121,9 +121,9 @@ foreach ($obj in $objlist)
         # total number = base + count for the directive
         $totalnum = $TargetFileNumBaseHash[$obj.Directive] + $TargetFileNumHash[$obj.Directive] - 1
         
-        if (($kubun -eq 8 ) -and  ($obj.Directive  -match "æç¤ºæ–‡çŒ®"))
+        if (($kubun -eq 8 ) -and  ($obj.Directive  -match "’ñ¦•¶Œ£"))
         {
-            #åŒºåˆ†ï¼˜ã‚¢ãƒŸãƒ¥ãƒ¼ã‚ºãƒ¡ãƒ³ãƒˆä»•æ§˜  \d\d_æç¤ºæ–‡çŒ®N_æ–‡çŒ®ç•ªå·.pdf
+            #‹æ•ª‚WƒAƒ~ƒ…[ƒYƒƒ“ƒgd—l  \d\d_’ñ¦•¶Œ£N_•¶Œ£”Ô†.pdf
             $obj.TargetFile = $totalnum.ToString("00")  + "_"  + $obj.Directive + $TargetFileNumHash[$obj.Directive].ToString()+"_"+$filename
         }
         else {
