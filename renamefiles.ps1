@@ -11,13 +11,13 @@ param(# Parameter help description
 )
 
 $objlist = [List[PSCustomObject]]::new()
-#Hash {Directive,how many times the directive occurres}like {書誌,0][提示文献,2][図面,0]]
+#Hash {Directive,how many times the directive occurres: [A, 0][B, 4]C,2]
 $DirectiveHash =@{}
 #count target file , start from 1
 $TargetFileNumHash=@{}
 #Start number for TargetFile
-# if TargetFileNumBaseHash{"提示文献"} is 4
-#then the number goes 04_提示文献,05_提示文献,,,,,
+# if TargetFileNumBaseHash{"A"" is 4
+#then the number goes 04_A, 05_A
 $TargetFileNumBaseHash=@{}
 $DirectiveOrder=[List[string]]::new()
 
@@ -93,20 +93,21 @@ foreach ($obj in $objlist)
     {
         $count++
 #        $countString = $count.ToString("00")
-            if (($kubun -eq 8 ) -and  ($obj.Directive  -match "提示文献"))
+        if (($kubun -eq 8 ) -and  ($obj.Directive  -match "提示文献"))
         {
-            #kubun 8 only:  dd_提示文献_filename
+            #kubun 8 only: dd_Directive_filename
             $obj.TargetFile = $count.ToString("00")+ "_" + $obj.Directive+"_"+$filename    
         }
         else {
-            #otherwise dd_提示文献n
+            #otherwise dd_Directive
             $obj.TargetFile = $count.ToString("00")+ "_" + $obj.Directive+".pdf"
         }
     }
     else {
-        #count up Directive eg, 提示文献1, 提示文献2
+        #count up Directive
         if ($TargetFileNumHash.ContainsKey($obj.Directive))
         {
+            #the Directive occurres more than once,
             #count up target file number for the directive
             $TargetFileNumHash[$obj.Directive]++
         }
@@ -118,12 +119,13 @@ foreach ($obj in $objlist)
             #increment the number by the number of directive occrrence
             $count = $count  + $DirectiveHash[$obj.Directive] 
         }
+
         # total number = base + count for the directive
         $totalnum = $TargetFileNumBaseHash[$obj.Directive] + $TargetFileNumHash[$obj.Directive] - 1
         
         if (($kubun -eq 8 ) -and  ($obj.Directive  -match "提示文献"))
         {
-            #区分８アミューズメント仕様  \d\d_提示文献N_文献番号.pdf
+            #pachinko only: dd_DirectiveN_filename
             $obj.TargetFile = $totalnum.ToString("00")  + "_"  + $obj.Directive + $TargetFileNumHash[$obj.Directive].ToString()+"_"+$filename
         }
         else {
