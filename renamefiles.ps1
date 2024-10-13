@@ -1,5 +1,6 @@
 using namespace System.Collections.Generic
-#tab  split
+using namespace System.Management.Automation
+
 #parameter
 param(# Parameter help description
 [Parameter(Mandatory=$true)]
@@ -7,8 +8,40 @@ param(# Parameter help description
 [Parameter(Mandatory=$false)]
 [Int32] $kubun=0,
 [Parameter(Mandatory=$false)]
-[Int32] $start=0
+[Int32] $start=1,
+[Parameter(Mandatory=$false)]
+[Int32] $verboselevel=0
 )
+
+function checkFileStatus($filePath)
+    {
+        if  ($verboselevel -eq 3)
+        {   
+             write-host  "[ACTION][FILECHECK] Checking if" $filePath "is locked"
+        }
+        $fileInfo = New-Object System.IO.FileInfo $filePath
+
+        try 
+        {
+            $fileStream = $fileInfo.Open( [System.IO.FileMode]::Open, [System.IO.FileAccess]::Write, [System.IO.FileShare]::Read )
+            if ($verboselevel -eq 3)
+            {
+                write-host  "[ACTION][FILEAVAILABLE]" $filePath
+            }
+            $fileStream.Close()
+            return $true
+        }
+        catch
+        {
+            write-host  "[ACTION][FILELOCKED] $filePath is locked"
+            if ($verboselevel -eq 3)
+            {
+                write-host $_
+            }
+            return $false
+        }
+    }
+#
 
 $objlist = [List[PSCustomObject]]::new()
 #Hash {Directive,how many times the directive occurres: [A, 0][B, 4]C,2]
@@ -25,7 +58,7 @@ $my_file = Get-Content $list
 #read file and store
 Foreach ($my_string  in $my_file) {
     #split into variable 
-    $one, $two,$three = $my_string.split(",")
+    $one, $two,$three = $my_string.split(",").trim()
     # if Directive is "asis", use filename trunk as Directive 
     if ($two -eq "asis")
     {
@@ -44,9 +77,14 @@ Foreach ($my_string  in $my_file) {
 
     $objlist.Add([pscustomobject]@{FName=$one
         Directive=$two
+        RelFName=""
+        AbsFName=""
         TargetFile=""
         } )
         #
+
+        #GetUnresolvedProviderPathFromPSPath
+
     if ($DirectiveHash.ContainsKey($two))
     {
         $DirectiveHash[$two]++
@@ -61,14 +99,25 @@ Foreach ($my_string  in $my_file) {
 #for each object
 foreach ($obj in $objlist)
 {
+    $obj.RelFName = ".\" + $obj.FName
+    $obj.absFName = Convert-path -path $obj.RelFName
     Write-Host $obj.FName
+    Write-Host $obj.RelFName
     Write-Host $obj.Directive
 }
 Write-Host $DirectiveHash
 Write-Host "‹æ•ª $kubun"
 Write-Host "ŠJŽn $start"
 
-$count = $start
+if ($start -le 1)
+{
+    $count = 0
+}
+else 
+{
+    $count = $start - 1
+}
+
 $filename=""
 foreach ($obj in $objlist)
 {
@@ -96,11 +145,11 @@ foreach ($obj in $objlist)
         if (($kubun -eq 8 ) -and  ($obj.Directive  -match "’ñŽ¦•¶Œ£"))
         {
             #kubun 8 only: dd_Directive_filename
-            $obj.TargetFile = $count.ToString("00")+ "_" + $obj.Directive+"_"+$filename    
+            $obj.TargetFile = ".\" + $count.ToString("00")+ "_" + $obj.Directive+"_"+$filename    
         }
         else {
             #otherwise dd_Directive
-            $obj.TargetFile = $count.ToString("00")+ "_" + $obj.Directive+".pdf"
+            $obj.TargetFile = ".\" + $count.ToString("00")+ "_" + $obj.Directive+".pdf"
         }
     }
     else {
@@ -126,22 +175,49 @@ foreach ($obj in $objlist)
         if (($kubun -eq 8 ) -and  ($obj.Directive  -match "’ñŽ¦•¶Œ£"))
         {
             #pachinko only: dd_DirectiveN_filename
-            $obj.TargetFile = $totalnum.ToString("00")  + "_"  + $obj.Directive + $TargetFileNumHash[$obj.Directive].ToString()+"_"+$filename
+            $obj.TargetFile = ".\" + $totalnum.ToString("00")  + "_"  + $obj.Directive + $TargetFileNumHash[$obj.Directive].ToString()+"_"+$filename
         }
         else {
             # \d\d_DirectiveN.pdf
-            $obj.TargetFile = $totalnum.ToString("00")  + "_"  + $obj.Directive + $TargetFileNumHash[$obj.Directive].ToString()+".pdf"
+            $obj.TargetFile = ".\" + $totalnum.ToString("00")  + "_"  + $obj.Directive + $TargetFileNumHash[$obj.Directive].ToString()+".pdf"
         }
     }
+}
+
+#test file is available
+$errcount = 0
+foreach($obj in $objlist)
+{
+#    if (-not (checkFileStatus($obj.TargetFile)))
+#    {
+#        Write-Host "Error Path: $obj.TargetFile"
+#        $errcount++
+#    }
+
+    if (-not (checkFileStatus($obj.AbsFName )))
+    {
+        Write-Host "Error Path  Source file:" $obj.AbsFName
+        $errcount++
+    }
+}
+
+if ($errcount  -gt  0)
+{
+    #error and exit
+    return $errcount
 }
 
 foreach ($obj in $objlist)
 {
     try {
-       Move-Item -Path $obj.FName -Destination $obj.TargetFile  -Force
+        if ($verboselevel -eq 3)
+        {
+           Write-Host  "rename file From:"  $obj.RelFName  " To: "  $obj.TargetFile 
+        }
+       Move-Item -Path $obj.RelFName -Destination $obj.TargetFile
     }
     catch {
-        Write-Host "rename file failed"
+        Write-Host "rename file failed From:" $obj.RelFName " To: ",$obj.TargetFile
         Write-Host $_
     }
 }
